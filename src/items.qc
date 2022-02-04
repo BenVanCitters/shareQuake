@@ -596,8 +596,6 @@ local float		best;
 		return;
 	if (other.health <= 0)
 		return;
-
-	bprint("asldkjfaslkdf");
 // if the player was using his best weapon, change up to the new one if better
 	stemp = self;
 	self = other;

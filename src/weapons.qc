@@ -23,6 +23,9 @@ void() W_Precache =
 	precache_sound ("weapons/bounce.wav");		// grenade bounce
 	precache_sound ("weapons/shotgn2.wav");	// super shotgun
 	
+	precache_model ("progs/armor.mdl");
+	precache_model ("progs/armor.mdl");
+	precache_model ("progs/armor.mdl");
 	precache_model ("maps/b_nail0.bsp");
 	precache_model ("maps/b_batt0.bsp");
 	precache_model ("maps/b_rock1.bsp");
@@ -264,26 +267,6 @@ void(float shotcount, vector dir, vector spread) FireBullets =
 	ApplyMultiDamage ();
 };
 
-/*
-================
-W_FireShotgun
-================
-*/
-void() W_FireShotgun =
-{
-	local vector dir;
-
-	sound (self, CHAN_WEAPON, "weapons/guncock.wav", 1, ATTN_NORM);
-
-	self.punchangle_x = -2;
-
-	self.currentammo = self.ammo_shells = self.ammo_shells - 1;
-	dir = aim (self, 100000);
-	FireBullets (6, dir, '0.04 0.04 0');
-};
-
-
-
 
 /*
 ==============================================================================
@@ -505,7 +488,6 @@ void() W_FireAmmo =
 {
 	local	entity missile;
 
-	sound (self, CHAN_WEAPON, "weapons/grenade.wav", 1, ATTN_NORM);
 
 	self.punchangle_x = -2;
 
@@ -531,19 +513,50 @@ void() W_FireAmmo =
 	missile.flags = FL_ITEM;	
 // set missile duration
 	missile.nextthink = time + 1; 
-	missile.think = removeOwner;
+	missile.think = removeOwner; // allow the person shooting to touch...
 	if (self.weapon == IT_AXE)
 	{
-		self.touch = health_touch;
-
-		setmodel(self, "maps/b_bh10.bsp");
-		self.noise = "items/r_item1.wav";
-		self.healamount = 15;
-		self.healtype = 0;
+		if(self.armorvalue)
+		{
+			missile.touch = armor_touch;
+			setmodel (missile, "progs/armor.mdl");
+			//
+			if (self.armortype == 0.3)
+			{
+				missile.items = IT_ARMOR1;
+				missile.skin = 0;
+			}
+			if (self.armortype == 0.6)
+			{
+				missile.items = IT_ARMOR2;
+				missile.skin = 1;
+			}
+			if (self.armortype == 0.8)
+			{
+				missile.items = IT_ARMOR3;
+				missile.skin = 2;
+			}
+			//
+			missile.armortype = self.armortype;
+			missile.armorvalue = self.armorvalue;
+			self.armorvalue = 0;
+		}
+		else
+		{
+			local float healAmt = 5;
+			if(self.health < healAmt)
+			{ healAmt = self.health; }	
+			
+			missile.touch = health_touch;
+			setmodel(missile, "maps/b_bh10.bsp");
+			missile.noise = "items/r_item1.wav";
+			missile.healamount = healAmt;
+			missile.healtype = 0;
+			T_Damage (self, self, self, healAmt);
+		}
 	}
 	else
-	{
-		
+	{		
 		missile.touch = ammo_touch;
 		
 		local float ammoAmt = 5;
@@ -552,6 +565,7 @@ void() W_FireAmmo =
 		missile.aflag = ammoAmt; // how much ammo in the box
 		if ( (self.weapon == IT_SHOTGUN) || (self.weapon == IT_SUPER_SHOTGUN) )
 		{
+			sound (self, CHAN_WEAPON, "weapons/guncock.wav", 1, ATTN_NORM);
 			missile.weapon = 1;
 			missile.netname = "shells";
 			setmodel (missile, "maps/b_shell0.bsp");		
@@ -559,27 +573,30 @@ void() W_FireAmmo =
 		}
 		else if ((self.weapon == IT_NAILGUN) || (self.weapon == IT_SUPER_NAILGUN))
 		{
+			sound (self, CHAN_WEAPON, "weapons/spike2.wav", 1, ATTN_NORM);
 			missile.weapon = 2;		
-			setmodel (self, "maps/b_nail0.bsp");
-			self.netname = "nails";
+			setmodel (missile, "maps/b_nail0.bsp");
+			missile.netname = "nails";
 			self.currentammo = self.ammo_nails = self.ammo_nails - ammoAmt;
 		}
 		else if ( (self.weapon == IT_GRENADE_LAUNCHER) ||  (self.weapon == IT_ROCKET_LAUNCHER) )
 		{
+			sound (self, CHAN_WEAPON, "weapons/sgun1.wav", 1, ATTN_NORM);
 			missile.weapon = 3;
-			self.netname = "rockets";
+			missile.netname = "rockets";
 			setmodel (missile, "maps/b_rock1.bsp");
 			self.currentammo = self.ammo_rockets = self.ammo_rockets - ammoAmt;
 		}
 		else if (self.weapon == IT_LIGHTNING)
 		{
+			sound (self, CHAN_WEAPON, "weapons/lhit.wav", 1, ATTN_NORM);
 			missile.weapon = 4;
-			self.netname = "cells";
+			missile.netname = "cells";
 			setmodel (missile, "maps/b_batt0.bsp");
 			self.currentammo = self.ammo_cells = self.ammo_cells - ammoAmt;
 		}
 	}
-	setsize (missile, '0 0 0', '5 5 5');
+	setsize (missile, '-4 -4 -4', '4 4 4');
 	setorigin (missile, self.origin);
 };
 
